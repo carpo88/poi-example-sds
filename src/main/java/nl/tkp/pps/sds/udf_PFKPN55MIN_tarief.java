@@ -13,6 +13,35 @@ import org.apache.poi.ss.util.CellRangeAddress;
 
 public class udf_PFKPN55MIN_tarief implements FreeRefFunction {
 
+    /*
+            hulp = Application.VLookup(leeftijd, tabel, 1)
+
+            hulp = hulp - Application.RoundDown(hulp, 0)
+            VindRest = hulp
+     */
+    private double VindRest(OperationEvaluationContext ec,ValueEval tabel, LazyRefEval leeftijd){
+
+        double hulp=0;
+
+        //System.out.println("DBG= row="+ec.getRowIndex() +" col="+ec.getColumnIndex()+ " sht="+ec.getSheetIndex()+" tbl="+tabel.toString() + " lft="+leeftijd.toString() );
+        Vlookup vl = new Vlookup();
+        // ValueEval evaluate(int srcRowIndex, int srcColumnIndex, ValueEval lookup_value, ValueEval table_array,
+        //                    ValueEval col_index, ValueEval range_lookup)
+        ValueEval hulp_ve = vl.evaluate( ec.getRowIndex(), ec.getColumnIndex(), leeftijd, tabel, new NumberEval(1), BoolEval.TRUE);
+
+        try {
+            if(hulp_ve instanceof org.apache.poi.ss.formula.eval.ErrorEval){
+                System.out.println(" error value ");
+            }
+            hulp = OperandResolver.coerceValueToDouble(hulp_ve);
+            hulp = hulp - Math.abs(hulp);
+
+        } catch (EvaluationException e) {
+            e.printStackTrace();
+        }
+
+        return hulp;
+    }
 
     @Override
     public ValueEval evaluate( ValueEval[] args, OperationEvaluationContext ec ) {
@@ -25,51 +54,67 @@ public class udf_PFKPN55MIN_tarief implements FreeRefFunction {
         // Arg 1 = KPN55Min:C11  -> leeftijd
         // Arg 2 = Factoren!A5:AO56 = range -> tabel
         // Arg 3 = NumberEval[5] --> kolomnr ??
-        int leeftijd;
-        double   tabel, kolomnummer,result ;
+        double  result ;
 
-        //double n  = 1 - VindRest(tabel, leeftijd) --> VLookup(leeftijd, tabel, 1)
+        NumberEval kolomnummer;
+        LazyRefEval leeftijd;
+        ValueEval tabel;
 
-
-
-        result=-1234.567;
         try {
-            if(args[0] instanceof org.apache.poi.ss.formula.LazyRefEval){
-                LazyRefEval re = (LazyRefEval)args[0];
-                ValueEval v1 = re.getInnerValueEval( ec.getSheetIndex() );
-                leeftijd = OperandResolver.coerceValueToInt( v1);
-                System.out.println("Leeftijd ="+leeftijd);
-
+            if (args[2] instanceof org.apache.poi.ss.formula.eval.NumberEval) {
+                kolomnummer = (NumberEval) args[2];
+                //System.out.println("kolomnummer =" + kolomnummer.getNumberValue());
+            } else {
+                return ErrorEval.NUM_ERROR;
             }
 
-            if (args[1] instanceof AreaEval) {
-                AreaEval ae = (AreaEval) args[1];
-                for(int i= ae.getFirstRow();i!=ae.getLastRow();i++)
-                {
-                    ValueEval v2 = ae.getRelativeValue(i,0);
-                    int  indexValue = OperandResolver.coerceValueToInt(v2);
-                    if ( indexValue == leeftijd){
-                        ValueEval v3 = ae.getRelativeValue(i,)
-                    }
-                }
+            if(args[0] instanceof org.apache.poi.ss.formula.LazyRefEval) {
+                leeftijd = (LazyRefEval) args[0];
+                //System.out.println("Leeftijd =" + leeftijd);
+            } else {
+                return ErrorEval.NUM_ERROR;
             }
 
-            ValueEval v1 = OperandResolver.getSingleValue( args[0],
-                    ec.getRowIndex(),
-                    ec.getColumnIndex() ) ;
-            ValueEval v2 = OperandResolver.getSingleValue( args[1],
-                    ec.getRowIndex(),
-                    ec.getColumnIndex() ) ;
-            ValueEval v3 = OperandResolver.getSingleValue( args[2],
-                    ec.getRowIndex(),
-                    ec.getColumnIndex() ) ;
+            //if(args[1] instanceof org.apache.poi.ss.formula.LazyAreaEval) {
+                tabel = (ValueEval) args[1];
+                //System.out.println("tabel =" +tabel.toString());
+            //} else {
+            //    return ErrorEval.NUM_ERROR;
+            //}
 
-//            principal  = OperandResolver.coerceValueToDouble( v1 ) ;
-//            rate  = OperandResolver.coerceValueToDouble( v2 ) ;
-//            years = OperandResolver.coerceValueToDouble( v3 ) ;
-//
-//            result = calculateMortgagePayment( principal, rate, years ) ;
+            double n = 1 - VindRest(ec,tabel,leeftijd);
+            ValueEval leeftijdValue  = OperandResolver.getSingleValue(leeftijd, ec.getRowIndex(), ec.getRowIndex());
+            double leeftijd_d = OperandResolver.coerceValueToDouble(leeftijdValue);
 
+            double x1 = Math.floor(  leeftijd_d + n) -n;
+            double x2 = Math.ceil( leeftijd_d + n) -n;
+
+            double r = leeftijd_d - x1;
+
+            Vlookup vl = new Vlookup();
+            ValueEval tar1 = vl.evaluate( ec.getRowIndex(), ec.getColumnIndex(), new NumberEval(x1),tabel,kolomnummer, BoolEval.FALSE);
+            ValueEval tar2 = vl.evaluate( ec.getRowIndex(), ec.getColumnIndex(), new NumberEval(x2),tabel,kolomnummer, BoolEval.FALSE);
+            double tar1_double = OperandResolver.coerceValueToDouble(tar1);
+            double tar2_double = OperandResolver.coerceValueToDouble(tar2);
+
+            double tarief = ( 1 - r) * tar1_double + r * tar2_double;
+
+        /*
+
+        n = 1 - VindRest(tabel, leeftijd)
+
+
+
+        x1 = Application.RoundDown(leeftijd + n, 0) - n
+        x2 = Application.RoundUp(leeftijd + n, 0) - n
+        r = leeftijd - x1
+        tar1 = Application.VLookup(x1, tabel, kolomnr, False)
+        tar2 = Application.VLookup(x2, tabel, kolomnr, False)
+        tarief = (1 - r) * tar1 + r * tar2
+
+       */
+
+            result=tarief;
             checkValue(result);
 
         } catch (EvaluationException e) {

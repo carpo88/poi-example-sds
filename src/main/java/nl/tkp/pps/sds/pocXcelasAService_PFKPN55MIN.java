@@ -16,7 +16,12 @@
 ==================================================================== */
 package nl.tkp.pps.sds;
 
+import org.apache.poi.ss.formula.eval.AreaEvalBase;
+import org.apache.poi.ss.formula.eval.BoolEval;
+import org.apache.poi.ss.formula.eval.NumberEval;
+import org.apache.poi.ss.formula.eval.ValueEval;
 import org.apache.poi.ss.formula.functions.FreeRefFunction;
+import org.apache.poi.ss.formula.functions.Vlookup;
 import org.apache.poi.ss.formula.udf.AggregatingUDFFinder;
 import org.apache.poi.ss.formula.udf.DefaultUDFFinder;
 import org.apache.poi.ss.formula.udf.UDFFinder;
@@ -25,6 +30,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.joda.time.DateTime;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -106,16 +112,23 @@ public class pocXcelasAService_PFKPN55MIN {
         printMap("Uitvoer-1"," ",uitv);
 
 
+
+        // Test 1
+        insertInvoer(invoerSheet, "70", i_1);
+        {
+            FileOutputStream fileOut = new FileOutputStream("saved.xlsm");
+            wb.write(fileOut);
+            fileOut.close();
+        }
+
         // Dit is de setter om invoer door te laten rekenen
         setSingleCellValue(mainSheet, new pocRange1D("C1"),99);
 
-        // Test 1
-        insertInvoer(invoerSheet, "22", i_1);
+
         inv = getInvoer( invoerSheet, 99);
         uitv = getUitvoer(mainSheet,new pocRange2D("A34:C42") );
         printMap("Invoer_BPFP-99-i_2"," ",inv);
         printMap("Uitvoer-99-i_2"," ",uitv);
-
 
 
         //FileOutputStream fileOut = new FileOutputStream("saved.xlsx");
@@ -158,7 +171,8 @@ public class pocXcelasAService_PFKPN55MIN {
         Iterator<Map.Entry<String, String>> entries = hm.entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry<String,String> entry = entries.next();
-            System.out.println(prefix+" => tag=" + entry.getKey() + " value = " + entry.getValue());
+
+            System.out.println(prefix+" => tag=" + (entry.getKey()).replaceAll("\\\n"," ") + " value = " + entry.getValue());
         }
 
 
@@ -229,6 +243,11 @@ public class pocXcelasAService_PFKPN55MIN {
 
     private static Cell getSingleCell(Sheet sht, pocRange1D range){
         Row r = sht.getRow( range.row);
+
+        if( r==null){
+            r=sht.createRow(range.row);
+        }
+
         Cell c = r.getCell( range.column);
         return c;
     }
@@ -313,7 +332,7 @@ public class pocXcelasAService_PFKPN55MIN {
 
         // Zoek juiste row bij invoerNr. Invoer_BPFP nr zit in col A (=0)
 
-        for(int i=2;i<30;i++){
+        for(int i=2;i<100;i++){
             Row r = invoer_sht.getRow(i);
             //System.out.println("cv="+i+" "+CellValueAsString( r.getCell(0)));
             Cell t = r.getCell(0);
@@ -336,11 +355,14 @@ public class pocXcelasAService_PFKPN55MIN {
 
         for( int col=0;col<25;col++){
             String valString = CellValueAsString( valrow.getCell(col));
-            //System.out.println("Fv "+col+"=>"+valString + " "+ valrow.getCell(col).getAddress().formatAsString() );
             if( valString != null && valString.length() > 0){
                 String tagString = CellValueAsString( tagrow.getCell(col));
-                //System.out.println("Tag ="+tagString);
-                hm.put(tagString,valString);
+                if(hm.containsKey(tagString)){
+                    hm.put(tagString+"_"+col, valString);
+                }
+                else {
+                    hm.put(tagString, valString);
+                }
             }
         }
 
@@ -349,91 +371,3 @@ public class pocXcelasAService_PFKPN55MIN {
 
 }
 
-
-/*
-Function tarief(leeftijd, tabel, kolomnr) As Double
-'
-'Deze functie kan interpoleren in een (willekeurige)
-'tabel, dus bv: 1,1
-'               2,1
-'etc
-
-Dim x1 As Double
-Dim x2 As Double
-Dim n As Double
-
-Dim r As Double
-Dim tar1 As Double
-Dim tar2 As Double
-
-n = 1 - VindRest(tabel, leeftijd)
-x1 = Application.RoundDown(leeftijd + n, 0) - n
-x2 = Application.RoundUp(leeftijd + n, 0) - n
-r = leeftijd - x1
-tar1 = Application.VLookup(x1, tabel, kolomnr, False)
-tar2 = Application.VLookup(x2, tabel, kolomnr, False)
-tarief = (1 - r) * tar1 + r * tar2
-End Function
-
-Function VindRest(tabel, leeftijd) As Double
-Dim hulp As Double
-
-hulp = Application.VLookup(leeftijd, tabel, 1)
-
-hulp = hulp - Application.RoundDown(hulp, 0)
-VindRest = hulp
-End Function
-
-Function tarief2(leeftijd, tabel, kolomnr) As Double
-'
-'Deze functie interpoleert alleen op halve leeftijden
-'
-Dim x1 As Double
-Dim x2 As Double
-Dim r As Double
-Dim tar1 As Double
-Dim tar2 As Double
-
-x1 = Application.RoundDown(leeftijd + 0.5, 0) - 0.5
-x2 = Application.RoundUp(leeftijd + 0.5, 0) - 0.5
-r = leeftijd - x1
-tar1 = Application.VLookup(x1, tabel, kolomnr, False)
-tar2 = Application.VLookup(x2, tabel, kolomnr, False)
-tarief2 = (1 - r) * tar1 + r * tar2
-End Function
-
-Function tariefSamos(leeftijd, plftd, tabel, kolomnr) As Double
-'
-'Samos interpolatie
-'
-Dim x1 As Double
-Dim x2 As Double
-Dim r As Double
-Dim tar1 As Double
-Dim tar2 As Double
-
-x1 = Application.RoundDown(leeftijd, 0)
-x2 = Application.RoundUp(leeftijd, 0)
-r = leeftijd - 1
-tar1 = Application.VLookup(x1, tabel, kolomnr, False)
-tar2 = Application.VLookup(x2, tabel, kolomnr, False)
-tariefSamos = ((1 - (leeftijd - x1)) * (plftd - x1) * tar1 _
-+ ((leeftijd - x1) * (plftd - 1 - x1) * tar2)) / (plftd - leeftijd)
-End Function
-
-Function Rond(a, b) As Double
-Dim rest As Double
-Dim geheel As Integer
-Dim fractie As Double
-'Rest = 0, is naar beneden afronden
-
-rest = ((10000 * a) Mod (10000 * b)) / 10000
-geheel = Int(a / b)
-fractie = Int(2 * rest / b)
-
-Rond = (geheel + fractie) * b
-
-End Function
-
-
- */

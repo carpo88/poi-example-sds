@@ -143,7 +143,7 @@ public class pocXcelasAService_BPFP {
         Iterator<Map.Entry<String, String>> entries = hm.entrySet().iterator();
         while (entries.hasNext()) {
             Map.Entry<String,String> entry = entries.next();
-            System.out.println(prefix+" => tag=" + entry.getKey() + " value = " + entry.getValue());
+            System.out.println(prefix+" => tag=" + entry.getKey().replaceAll("[^\\w\\s]","") + " value = " + entry.getValue());
         }
 
 
@@ -288,7 +288,12 @@ public class pocXcelasAService_BPFP {
             if( valString != null && valString.length() > 0){
                 String tagString = CellValueAsString( tagrow.getCell(col));
                 //System.out.println("Tag ="+tagString);
-                hm.put(tagString,valString);
+                if(hm.containsKey(tagString)){
+                    hm.put(tagString+"_"+col, valString);
+                }
+                else {
+                    hm.put(tagString, valString);
+                }
             }
         }
 
