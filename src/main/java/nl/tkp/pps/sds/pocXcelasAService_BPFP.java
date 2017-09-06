@@ -17,6 +17,7 @@
 package nl.tkp.pps.sds;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.*;
 
 import org.apache.poi.ss.usermodel.*;
@@ -44,7 +45,7 @@ public class pocXcelasAService_BPFP {
         
         String fname = new String("./files/PPS-WON_BPF_Particuliere_Beveiliging_v2.0.xlsx");
         String mainSheetNaam = new String("BPF_Particuliere Beveiliging");
-        String invoerSheetNaam = new String("Invoer_BPFP Beveiliging");
+        String invoerSheetNaam = new String("Invoer");
 
         Map inv = null;
 
@@ -84,6 +85,17 @@ public class pocXcelasAService_BPFP {
         Workbook wb = new XSSFWorkbook(fis); 
         Sheet mainSheet = wb.getSheet(mainSheetNaam);
         Sheet invoerSheet = wb.getSheet(invoerSheetNaam);
+
+        if(mainSheet==null ){
+            System.out.println("Iets verkeerd met mainSheet ??");
+            System.exit(1);
+        }
+
+        if(invoerSheet==null ){
+            System.out.println("Iets verkeerd met invoerSheet ??");
+            System.exit(1);
+        }
+
         evaluator = wb.getCreationHelper().createFormulaEvaluator();
 
         Map<String,String> uitv = getUitvoer(mainSheet,new pocRange2D("I2:J16") );
@@ -95,8 +107,8 @@ public class pocXcelasAService_BPFP {
         insertInvoer(invoerSheet, "22", i_1);
         inv = getInvoer( invoerSheet, 99);
         uitv = getUitvoer(mainSheet,new pocRange2D("I2:J16") );
-        printMap("Invoer_BPFP-99-i_2"," ",inv);
-        printMap("Uitvoer-99-i_2"," ",uitv);
+        printMap("Invoer_BPFP-99-i_1"," ",inv);
+        printMap("Uitvoer-99-i_1"," ",uitv);
 
 
         // Test 2
@@ -107,9 +119,9 @@ public class pocXcelasAService_BPFP {
         printMap("Uitvoer-99-i_2"," ",uitv);
 
 
-        //FileOutputStream fileOut = new FileOutputStream("saved.xlsx");
-        //wb.write(fileOut);
-        //fileOut.close();
+        FileOutputStream fileOut = new FileOutputStream("saved-bpfp.xlsx");
+        wb.write(fileOut);
+        fileOut.close();
 
 
 
