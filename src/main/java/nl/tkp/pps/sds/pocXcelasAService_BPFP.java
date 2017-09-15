@@ -100,8 +100,12 @@ public class pocXcelasAService_BPFP {
 
         Map<String,String> uitv = getUitvoer(mainSheet,new pocRange2D("I2:J16") );
 
+        //Cell p_0 = getSingleCell(mainSheet,new pocRange1D("D2"));
+        //System.out.println("invoer cell pre = "+ p_0.getNumericCellValue() );
         // Dit is de setter om invoer door te laten rekenen
-        setSingleCellValue(invoerSheet, new pocRange1D("D2"),99);
+        setSingleCellValue(mainSheet, new pocRange1D("D2"),99);
+        //Cell p_1 = getSingleCell(mainSheet,new pocRange1D("D2"));
+        //System.out.println("invoer cell pst = "+ p_1.getNumericCellValue() );
 
         // Test 1
         insertInvoer(invoerSheet, "22", i_1);

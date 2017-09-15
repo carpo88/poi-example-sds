@@ -115,7 +115,7 @@ public class Invoer_BPFP {
         }
 
         public InvoerBuilder overdrachtsWaardeVerevendOP (double overdrachtsWaardeVerevendOP){
-            this.overdrachtsWaardeOP = overdrachtsWaardeOP;
+            this.overdrachtsWaardeVerevendOP = overdrachtsWaardeVerevendOP;
             return this;
         }
 
