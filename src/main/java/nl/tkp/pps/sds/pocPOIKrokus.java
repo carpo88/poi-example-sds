@@ -70,21 +70,26 @@ public class pocPOIKrokus {
         UDFFinder udfToolpack = new AggregatingUDFFinder( udfs ) ;
 
         FileInputStream fis = new FileInputStream(fname);
-        Workbook wb = new XSSFWorkbook(fis);
-        evaluator = wb.getCreationHelper().createFormulaEvaluator();
-
-        wb.addToolPack(udfToolpack);
 
         System.setProperty("POI.FormulaEval", "org.apache.poi.util.SystemOutLogger");
         System.setProperty("org.apache.poi.util.POILogger", "org.apache.poi.util.SystemOutLogger");
-        System.setProperty("poi.log.level", POILogger.DEBUG + "");
+        //System.setProperty("poi.log.level", POILogger.DEBUG + "");
 
+
+
+        Workbook wb = new XSSFWorkbook(fis);
+        evaluator = wb.getCreationHelper().createFormulaEvaluator();
+
+
+        wb.addToolPack(udfToolpack);
 
 
         FunctionEval.registerFunction("DATEDIF", new Function() {
             @Override
             public ValueEval evaluate(ValueEval[] args, int srcRowIndex, int srcColumnIndex) {
-                System.out.println("DATEDIF Args = "+ args);
+//                System.out.println("DateDiff Call --> "+args+ " "+ srcRowIndex+ "  "+srcColumnIndex);
+
+
                 ValueEval v_a=null;
                 ValueEval v_b=null;
                 try{
@@ -92,7 +97,7 @@ public class pocPOIKrokus {
                     v_a = OperandResolver.getSingleValue(args[0], srcRowIndex,srcColumnIndex);
                     Date d1 = DateUtil.getJavaDate(OperandResolver.coerceValueToDouble(v_a));
 
-                    v_b = OperandResolver.getSingleValue(args[1],srcRowIndex,srcColumnIndex);
+                    v_b = OperandResolver.getSingleValue(args[1], srcRowIndex,srcColumnIndex);
                     Date d2 = DateUtil.getJavaDate(OperandResolver.coerceValueToDouble(v_b));
 
                     switch( OperandResolver.coerceValueToString(args[2]).charAt(0)){
@@ -100,10 +105,12 @@ public class pocPOIKrokus {
                             int m=  Months.monthsBetween( new DateTime(d1).withDayOfMonth(1), new DateTime(d2).withDayOfMonth(1)).getMonths();
                             return new NumberEval(m);
                         default:
+                            System.out.println("DATEDIFF --> Unknown third parameter "+ OperandResolver.coerceValueToString(args[2]).charAt(0) );
                             return ErrorEval.NUM_ERROR;
                     }
 
                 } catch (EvaluationException e) {
+                    System.out.println("DateDiff Error --> "+args+ " "+ srcRowIndex+ "  "+srcColumnIndex);
                     e.printStackTrace();
                 }
                 return ErrorEval.NA;
@@ -113,26 +120,29 @@ public class pocPOIKrokus {
         FunctionEval.registerFunction("DATEVALUE", new Function() {
             @Override
             public ValueEval evaluate(ValueEval[] args, int srcRowIndex, int srcColumnIndex) {
-                System.out.println("DATEVALUE Args = "+ args);
+//                System.out.println("DATEVALUE Call --> "+ args + " "+ srcColumnIndex+" "+srcColumnIndex);
+
                 ValueEval v = null;
                 try {
                     v = OperandResolver.getSingleValue(args[0], srcRowIndex,srcColumnIndex);
                     System.out.println("args1 =" + OperandResolver.coerceValueToString(v));
                     if( v instanceof BlankEval)
                     {
-                        //return new NumberEval(DateUtil.getExcelDate(now.getTime()));
+                        System.out.println("DATEVALUE --> 0");
                         return new NumberEval(0);
                     }
                     else if ( v instanceof StringEval)
                     {
                         String vStr = OperandResolver.coerceValueToString(v);
                         if(vStr.length() != 0) {
-                            DateFormat format = new SimpleDateFormat("yyyy-mm-dd");
+                            DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
                             Date date = format.parse(OperandResolver.coerceValueToString(v));
+//                            System.out.println("DATEVALUE --> Date "+date.toString() );
                             return new NumberEval(DateUtil.getExcelDate(date));
                         }
                         else
                         {
+                            System.out.println("DATEVALUE --> return num_error");
                             return ErrorEval.NUM_ERROR;
                         }
                     }
@@ -143,70 +153,12 @@ public class pocPOIKrokus {
                     e.printStackTrace();
                 }
 
-
+//                System.out.println("DATEVALUE --> return NA");
                 return ErrorEval.NA;
             }
         });
 
 
-
-
-
-
-        {
-
-
-            Sheet sheet = wb.getSheet("deelberekening");
-
-            // perform debug output for the next evaluate-call only
-            evaluator.setDebugEvaluationOutputForNextEval(true);
-
-            CellReference cellReference = new CellReference("E2");
-            Row row = sheet.getRow(cellReference.getRow());
-            Cell cell = row.getCell(cellReference.getCol());
-
-            if (cell!=null) {
-                switch (evaluator.evaluateInCell(cell).getCellType()) {
-                    case Cell.CELL_TYPE_BOOLEAN:
-                        System.out.println(cell.getBooleanCellValue());
-                        break;
-                    case Cell.CELL_TYPE_NUMERIC:
-                        System.out.println(cell.getNumericCellValue());
-                        break;
-                    case Cell.CELL_TYPE_STRING:
-                        System.out.println(cell.getStringCellValue());
-                        break;
-                    case Cell.CELL_TYPE_BLANK:
-                        break;
-                    case Cell.CELL_TYPE_ERROR:
-                        System.out.println(cell.getErrorCellValue());
-                        break;
-
-                    // CELL_TYPE_FORMULA will never occur
-                    case Cell.CELL_TYPE_FORMULA:
-                        break;
-                }
-            }
-
-            evaluator.evaluateFormulaCell(cell);
-            evaluator.evaluateFormulaCell(cell);
-        }
-
-
-        if(sheet_validator(wb)==false)
-        {
-            System.out.println("Sheet error");
-            System.exit(1);
-        };
-
-        Sheet extractieSheet = wb.getSheet("extractie-dln");
-        Sheet extractieNprOpRenteSheet = wb.getSheet("extractie-npr-op-rente");
-        Sheet extractieConfrontatie = wb.getSheet("Opzet_confrontatie");
-
-
-
-        // codetabellen
-        // codeTabellen
 
         //loop over code-tabellen , voor code-tabel <--> sheet-naam
         Sheet codeSheetReferentie = wb.getSheet("code-tabel-referentie");
@@ -238,6 +190,80 @@ public class pocPOIKrokus {
             }
             codeTabellen.put( cdtReferenties.get(shtName), _t );
         }
+
+
+
+
+
+//        {
+//            Sheet sheet = wb.getSheet("deelberekening");
+//
+//            // perform debug output for the next evaluate-call only
+//            evaluator.setDebugEvaluationOutputForNextEval(true);
+//
+//            CellReference cellReference = new CellReference("E17");
+//            Row row = sheet.getRow(cellReference.getRow());
+//            Cell cell = row.getCell(cellReference.getCol());
+//
+//            String v = getSingleCellValue( sheet, new pocRange1D("E17"));
+//            System.out.println("val = "+v);
+//            System.exit(0);
+//        }
+
+
+//            {
+//
+//
+//            Sheet sheet = wb.getSheet("deelberekening");
+//
+//            // perform debug output for the next evaluate-call only
+//            evaluator.setDebugEvaluationOutputForNextEval(true);
+//
+//            CellReference cellReference = new CellReference("E2");
+//            Row row = sheet.getRow(cellReference.getRow());
+//            Cell cell = row.getCell(cellReference.getCol());
+//
+//            if (cell!=null) {
+//                switch (evaluator.evaluateInCell(cell).getCellType()) {
+//                    case Cell.CELL_TYPE_BOOLEAN:
+//                        System.out.println(cell.getBooleanCellValue());
+//                        break;
+//                    case Cell.CELL_TYPE_NUMERIC:
+//                        System.out.println(cell.getNumericCellValue());
+//                        break;
+//                    case Cell.CELL_TYPE_STRING:
+//                        System.out.println(cell.getStringCellValue());
+//                        break;
+//                    case Cell.CELL_TYPE_BLANK:
+//                        break;
+//                    case Cell.CELL_TYPE_ERROR:
+//                        System.out.println(cell.getErrorCellValue());
+//                        break;
+//
+//                    // CELL_TYPE_FORMULA will never occur
+//                    case Cell.CELL_TYPE_FORMULA:
+//                        break;
+//                }
+//            }
+//
+//            evaluator.evaluateFormulaCell(cell);
+//            evaluator.evaluateFormulaCell(cell);
+//        }
+
+
+        if(sheet_validator(wb)==false) {
+            System.out.println("Sheet error");
+            System.exit(1);
+        }
+        else {
+            System.out.println("Sheet OK");
+        }
+
+        Sheet extractieSheet = wb.getSheet("extractie-dln");
+        Sheet extractieNprOpRenteSheet = wb.getSheet("extractie-npr-op-rente");
+        Sheet extractieConfrontatie = wb.getSheet("Opzet_confrontatie");
+
+
 
 
         CellRangeAddress extractieRangeNAW =  CellRangeAddress.valueOf("F3:F19");

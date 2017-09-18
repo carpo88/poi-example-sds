@@ -37,12 +37,12 @@ public class udf_HWC implements FreeRefFunction {
             if (args[0] instanceof StringEval) {
                 StringEval cdtEval = (StringEval) args[0];
                 codetabel = cdtEval.getStringValue();
-                System.out.println("args0 = "+codetabel);
+                //System.out.println("args0 = "+codetabel);
             } else
             if(args[0] instanceof org.apache.poi.ss.formula.LazyRefEval) {
                 LazyRefEval cdtEval = (LazyRefEval) args[0];
                 ValueEval v = OperandResolver.getSingleValue(cdtEval, ec.getRowIndex(),ec.getColumnIndex());
-                System.out.println("args0 =" + OperandResolver.coerceValueToString(v));
+                //System.out.println("args0 =" + OperandResolver.coerceValueToString(v));
                 codetabel = OperandResolver.coerceValueToString(v);
             } else {
                 return ErrorEval.NUM_ERROR;
